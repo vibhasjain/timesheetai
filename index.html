@@ -897,8 +897,8 @@
 
     <script>
         // Configuration
-        // API Key - embedded for internal team use
-        const API_KEY = 'YOUR_API_KEY_HERE'; // Replace with your actual Anthropic API key
+        // API Key - set your own key here or it will prompt on first use
+        let API_KEY = localStorage.getItem('anthropic_api_key') || '';
         const MODEL = 'claude-opus-4-5-20251101';
 
         const SYSTEM_PROMPT = `You are a timesheet reconciliation AI for HyperTrack Closeout. Your job is to analyze time and attendance data from multiple sources and produce a reconciled, validated timesheet.
@@ -1285,12 +1285,18 @@ If you cannot extract meaningful time data, explain why and what format would be
             if (uploadedFiles.length === 0) return;
 
             // Check for API key
-            if (!API_KEY || API_KEY === 'YOUR_API_KEY_HERE') {
-                // No API key configured - use demo data
-                console.log('No API key configured, using demo data');
-                renderResults(FALLBACK_RESULTS);
-                resultsSection.style.display = 'block';
-                return;
+            if (!API_KEY) {
+                const key = prompt('Enter your Anthropic API key to enable AI analysis:\n(Get one at console.anthropic.com)');
+                if (key && key.startsWith('sk-')) {
+                    API_KEY = key;
+                    localStorage.setItem('anthropic_api_key', key);
+                } else {
+                    // Use fallback data if no key provided
+                    console.log('No API key provided, using demo data');
+                    renderResults(FALLBACK_RESULTS);
+                    resultsSection.style.display = 'block';
+                    return;
+                }
             }
 
             // Show loading with progress
