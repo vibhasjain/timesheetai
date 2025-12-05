@@ -347,6 +347,23 @@
             margin-top: 12px;
             font-size: 0.85rem;
             color: #868686;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .spinner {
+            width: 16px;
+            height: 16px;
+            border: 2px solid #E1E1E1;
+            border-top-color: #27A359;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
 
         /* Results Section */
@@ -1061,7 +1078,10 @@
                         <span id="progress-text" class="progress-loader-text">0%</span>
                     </div>
                 </div>
-                <p id="progress-status" class="progress-loader-status">Preparing files...</p>
+                <div id="progress-status" class="progress-loader-status">
+                    <span class="spinner"></span>
+                    <span id="progress-status-text">Preparing files...</span>
+                </div>
             </div>
         </div>
 
@@ -1531,7 +1551,7 @@ If you cannot extract meaningful time data, explain why and what format would be
         function updateProgress(percent, status) {
             const fill = document.getElementById('progress-fill');
             const text = document.getElementById('progress-text');
-            const statusEl = document.getElementById('progress-status');
+            const statusEl = document.getElementById('progress-status-text');
 
             fill.style.width = `${Math.max(percent, 5)}%`;
             text.textContent = `${Math.round(percent)}%`;
