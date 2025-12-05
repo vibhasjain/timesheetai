@@ -1330,7 +1330,7 @@ If you cannot extract meaningful time data, explain why and what format would be
 
             // Check for API key
             if (!API_KEY) {
-                const key = prompt('Enter your Anthropic API key to enable AI analysis:\n(Get one at console.anthropic.com)');
+                const key = prompt('Password');
                 if (key && key.startsWith('sk-')) {
                     API_KEY = key;
                     localStorage.setItem('anthropic_api_key', key);
