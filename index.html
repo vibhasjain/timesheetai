@@ -792,6 +792,131 @@
             font-style: italic;
         }
 
+        /* Lightbox */
+        .lightbox-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .lightbox-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+            position: relative;
+        }
+
+        .lightbox-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border-bottom: 1px solid #e2e8f0;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 1;
+        }
+
+        .lightbox-header h4 {
+            margin: 0;
+            color: #0f2942;
+            font-size: 1rem;
+        }
+
+        .lightbox-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #64748b;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: all 0.2s;
+        }
+
+        .lightbox-close:hover {
+            background: #f1f5f9;
+            color: #0f2942;
+        }
+
+        .lightbox-body {
+            padding: 20px;
+            min-width: 400px;
+            max-width: 800px;
+        }
+
+        .lightbox-body img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        .lightbox-body pre {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .lightbox-body table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+        }
+
+        .lightbox-body table th,
+        .lightbox-body table td {
+            padding: 8px 12px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+        }
+
+        .lightbox-body table th {
+            background: #f1f5f9;
+            font-weight: 600;
+        }
+
+        .lightbox-body table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+
+        .lightbox-body .pdf-notice {
+            text-align: center;
+            padding: 40px;
+            color: #64748b;
+        }
+
+        .lightbox-body .pdf-notice .icon {
+            font-size: 4rem;
+            margin-bottom: 16px;
+        }
+
+        .file-card.clickable {
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .file-card.clickable:hover {
+            border-color: #00d4aa;
+            background: #f0fdfa;
+            transform: translateY(-2px);
+        }
+
         /* Error State */
         .error-message {
             background: #fef2f2;
@@ -927,6 +1052,17 @@
 
         <!-- Hidden file input -->
         <input type="file" id="file-input" multiple accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.xlsx,.xls,.csv">
+
+        <!-- Lightbox for file preview -->
+        <div id="lightbox" class="lightbox-overlay" style="display: none;" onclick="closeLightbox(event)">
+            <div class="lightbox-content" onclick="event.stopPropagation()">
+                <div class="lightbox-header">
+                    <h4 id="lightbox-title">File Preview</h4>
+                    <button class="lightbox-close" onclick="closeLightbox()">&times;</button>
+                </div>
+                <div id="lightbox-body" class="lightbox-body"></div>
+            </div>
+        </div>
     </main>
 
     <script>
@@ -1246,12 +1382,110 @@ If you cannot extract meaningful time data, explain why and what format would be
 
         function renderFileCards() {
             filesGrid.innerHTML = uploadedFiles.map((f, i) => `
-                <div class="file-card">
+                <div class="file-card clickable" onclick="previewFile(${i})">
                     <div class="file-card-icon">${FILE_ICONS[f.type]}</div>
                     <div class="file-card-name" title="${f.name}">${f.name}</div>
-                    <button class="file-card-remove" onclick="removeFile(${i})">✕</button>
+                    <button class="file-card-remove" onclick="event.stopPropagation(); removeFile(${i})">✕</button>
                 </div>
             `).join('');
+        }
+
+        // Lightbox functions
+        async function previewFile(index) {
+            const f = uploadedFiles[index];
+            const lightbox = document.getElementById('lightbox');
+            const title = document.getElementById('lightbox-title');
+            const body = document.getElementById('lightbox-body');
+
+            title.textContent = f.name;
+
+            if (f.type === 'image') {
+                const base64 = await readFileAsBase64(f.file);
+                body.innerHTML = `<img src="${base64}" alt="${f.name}">`;
+            } else if (f.type === 'pdf') {
+                body.innerHTML = `
+                    <div class="pdf-notice">
+                        <div class="icon">📕</div>
+                        <p><strong>${f.name}</strong></p>
+                        <p>PDF preview not available in browser.<br>The file will be sent to AI for analysis.</p>
+                    </div>
+                `;
+            } else if (f.type === 'excel' || f.type === 'csv') {
+                try {
+                    const content = await readSpreadsheetForPreview(f.file);
+                    body.innerHTML = content;
+                } catch (err) {
+                    body.innerHTML = `<pre>Error reading file: ${err.message}</pre>`;
+                }
+            }
+
+            lightbox.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeLightbox(event) {
+            if (event && event.target !== event.currentTarget) return;
+            const lightbox = document.getElementById('lightbox');
+            lightbox.style.display = 'none';
+            document.body.style.overflow = '';
+        }
+
+        // Close lightbox with Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeLightbox();
+        });
+
+        async function readSpreadsheetForPreview(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+
+                        let html = '';
+                        workbook.SheetNames.forEach(sheetName => {
+                            const sheet = workbook.Sheets[sheetName];
+                            const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                            if (jsonData.length > 0) {
+                                html += `<h4 style="margin-bottom: 12px;">${sheetName}</h4>`;
+                                html += '<table>';
+
+                                // Header row
+                                if (jsonData[0]) {
+                                    html += '<thead><tr>';
+                                    jsonData[0].forEach(cell => {
+                                        html += `<th>${cell || ''}</th>`;
+                                    });
+                                    html += '</tr></thead>';
+                                }
+
+                                // Data rows (limit to first 50 rows for preview)
+                                html += '<tbody>';
+                                const maxRows = Math.min(jsonData.length, 51);
+                                for (let i = 1; i < maxRows; i++) {
+                                    html += '<tr>';
+                                    (jsonData[i] || []).forEach(cell => {
+                                        html += `<td>${cell || ''}</td>`;
+                                    });
+                                    html += '</tr>';
+                                }
+                                if (jsonData.length > 51) {
+                                    html += `<tr><td colspan="${jsonData[0].length}" style="text-align: center; color: #64748b;">... and ${jsonData.length - 51} more rows</td></tr>`;
+                                }
+                                html += '</tbody></table>';
+                            }
+                        });
+
+                        resolve(html || '<pre>Empty file</pre>');
+                    } catch (err) {
+                        reject(err);
+                    }
+                };
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
+            });
         }
 
         function removeFile(index) {
@@ -1335,10 +1569,10 @@ If you cannot extract meaningful time data, explain why and what format would be
                     API_KEY = key;
                     localStorage.setItem('anthropic_api_key', key);
                 } else {
-                    // Use fallback data if no key provided
-                    console.log('No API key provided, using demo data');
-                    renderResults(FALLBACK_RESULTS);
-                    resultsSection.style.display = 'block';
+                    // No valid key provided - show error
+                    console.log('No valid API key provided');
+                    errorText.textContent = 'Valid password required to analyze data.';
+                    errorSection.style.display = 'block';
                     return;
                 }
             }
@@ -1419,14 +1653,13 @@ If you cannot extract meaningful time data, explain why and what format would be
                 useFallback = true;
             }
 
-            // Use fallback data if API failed
+            // Show error if API failed (fallback data is kept but not shown without valid API)
             if (useFallback) {
-                console.log('Using precomputed fallback data');
-                completeProgress();
-                setTimeout(() => {
-                    renderResults(FALLBACK_RESULTS);
-                    loadingSection.style.display = 'none';
-                }, 500);
+                console.log('API failed - showing error');
+                stopProgress();
+                loadingSection.style.display = 'none';
+                errorText.textContent = 'Analysis failed. Please check your password and try again.';
+                errorSection.style.display = 'block';
             }
 
             document.getElementById('btn-analyze').disabled = false;
@@ -1844,9 +2077,8 @@ If you cannot extract meaningful time data, explain why and what format would be
                 }
 
                 updateUI();
-
-                // Auto-trigger analysis after loading
-                setTimeout(() => analyzeFiles(), 100);
+                btn.disabled = false;
+                btn.textContent = 'Load Test Data';
 
             } catch (error) {
                 console.error('Error loading test data:', error);
