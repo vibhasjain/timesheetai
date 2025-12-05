@@ -665,10 +665,21 @@
             display: table-row;
         }
 
+        .expansion-row td {
+            padding: 0;
+            background: #f8fafc;
+        }
+
         .expansion-content {
             padding: 16px 24px 20px;
             background: #f8fafc;
             border-left: 3px solid #00d4aa;
+            overflow: visible;
+            min-height: 50px;
+        }
+
+        .expansion-row.visible .expansion-content {
+            display: block;
         }
 
         /* Notes styling with color coding */
@@ -722,6 +733,8 @@
         /* Raw data table */
         .raw-data-section {
             margin-top: 12px;
+            max-width: 800px;
+            display: block;
         }
 
         .raw-data-table {
@@ -730,8 +743,10 @@
             font-size: 0.8rem;
             background: white;
             border-radius: 6px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+            table-layout: auto;
+            min-width: 300px;
         }
 
         .raw-data-table th {
@@ -761,6 +776,7 @@
             border-radius: 999px;
             font-size: 0.7rem;
             font-weight: 500;
+            white-space: nowrap;
         }
 
         .source-badge.mobile { background: #dbeafe; color: #1e40af; }
@@ -830,6 +846,24 @@
             .sources-table th,
             .sources-table td {
                 padding: 8px;
+            }
+
+            .raw-data-section {
+                max-width: 100%;
+            }
+        }
+
+        /* Ensure raw data is visible on desktop */
+        @media (min-width: 601px) {
+            .raw-data-section {
+                display: block !important;
+                visibility: visible !important;
+                opacity: 1 !important;
+            }
+
+            .raw-data-table {
+                display: table !important;
+                visibility: visible !important;
             }
         }
     </style>
@@ -916,7 +950,8 @@ TASK:
    - Paper timesheets (can have transcription delays)
    - Worker self-reports (lowest priority alone, good for corroboration)
 6. Produce a final reconciled timesheet with reasoning
-7. Classify which of these 5 data source types were present:
+7. Include raw_data array showing each source's original clock times and notes
+8. Classify which of these 5 data source types were present:
    - Customer System (paper, QR, hardware at facility)
    - Mobile Clock-In (app-based time tracking)
    - Location Data (GPS, geofence)
@@ -942,7 +977,12 @@ OUTPUT FORMAT (JSON) - Return an array of workers, one per employee found:
         "supervisor_confirmation": true,
         "worker_self_report": true
       },
-      "reasoning": "Used location data for clock-in. Supervisor confirmed clock-out. All sources corroborate."
+      "reasoning": "Used location data for clock-in. Supervisor confirmed clock-out. All sources corroborate.",
+      "raw_data": [
+        { "source": "Mobile Clock-In", "clock_in": "7:15 AM", "clock_out": "4:02 PM", "notes": "Device: iPhone-8X92" },
+        { "source": "Location Data", "clock_in": "6:58 AM", "clock_out": "4:01 PM", "notes": "Geofence entry/exit" },
+        { "source": "Supervisor Log", "clock_in": "7:00 AM", "clock_out": "4:00 PM", "notes": "Confirmed" }
+      ]
     },
     {
       "worker_name": "Jane Smith",
@@ -960,7 +1000,11 @@ OUTPUT FORMAT (JSON) - Return an array of workers, one per employee found:
         "supervisor_confirmation": true,
         "worker_self_report": true
       },
-      "reasoning": "Early departure confirmed by supervisor (pre-approved)."
+      "reasoning": "Early departure confirmed by supervisor (pre-approved).",
+      "raw_data": [
+        { "source": "Mobile Clock-In", "clock_in": "6:58 AM", "clock_out": "3:30 PM", "notes": "Device: Android-K182" },
+        { "source": "Supervisor Log", "clock_in": "7:00 AM", "clock_out": "3:30 PM", "notes": "Left early - pre-approved" }
+      ]
     }
   ],
   "summary": {
